@@ -121,6 +121,13 @@ static void handlePulse(const proto::Request &rq) {
 }
 
 static void handleLine(const char *line) {
+#ifdef FAULT_INJECTION  // test-only env; never in the production build
+    if (!strcmp(line, "!hang")) { for (;;) {} }           // busy-hang: watchdog must reset
+    if (!strcmp(line, "!hangrelay")) {                     // relay on, then hang
+        gpio_set_level((gpio_num_t)relays[0].pin, RELAY_ON);
+        for (;;) {}
+    }
+#endif
     proto::Request rq;
     proto::Err e = proto::parseRequest(line, rq);
     if (e != proto::Err::OK) return replyErr(rq.id, e);
